@@ -1,0 +1,66 @@
+name: publish-plaud
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump: patch | minor | major"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build mcp-provider-api
+        run: cd packages/mcp-provider-api && npx tsc --skipLibCheck
+
+      - name: Build mcp-salesforce-dx-core
+        run: cd packages/mcp-provider-dx-core && npx tsc --skipLibCheck
+
+      - name: Build remaining providers
+        run: |
+          for pkg in mcp-provider-code-analyzer mcp-provider-devops mcp-provider-metadata-enrichment mcp-provider-mobile-web; do
+            cd packages/$pkg && npx tsc --skipLibCheck; cd ../../
+          done
+          cd packages/mcp-provider-scale-products && npx tsc -p tsconfig.build.json --skipLibCheck; cd ../../
+
+      - name: Build mcp-salesforce
+        run: cd packages/mcp && npx tsc --build
+
+      - name: Bump version - mcp-salesforce-dx-core
+        run: cd packages/mcp-provider-dx-core && npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Bump version - mcp-salesforce
+        run: cd packages/mcp && npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Publish mcp-salesforce-dx-core
+        run: cd packages/mcp-provider-dx-core && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish mcp-salesforce
+        run: cd packages/mcp && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version bumps
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/mcp-provider-dx-core/package.json packages/mcp/package.json
+          DX_VERSION=$(node -p "require('./packages/mcp-provider-dx-core/package.json').version")
+          MCP_VERSION=$(node -p "require('./packages/mcp/package.json').version")
+          git commit -m "chore: publish @plaud-dev/mcp-salesforce-dx-core@${DX_VERSION} and @plaud-dev/mcp-salesforce@${MCP_VERSION}"
+          git push

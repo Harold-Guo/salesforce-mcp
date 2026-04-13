@@ -28,6 +28,7 @@ import { ResumeMcpTool } from './tools/resume_tool_operation.js';
 import { RetrieveMetadataMcpTool } from './tools/retrieve_metadata.js';
 import { TestAgentsMcpTool } from './tools/run_agent_test.js';
 import { TestApexMcpTool } from './tools/run_apex_test.js';
+import { OrgLoginWebMcpTool } from './tools/org_login_web.js';
 
 export {
   usernameOrAliasParam,
@@ -54,6 +55,7 @@ export class DxCoreMcpProvider extends McpProvider {
       new RetrieveMetadataMcpTool(services),
       new TestAgentsMcpTool(services),
       new TestApexMcpTool(services),
+      new OrgLoginWebMcpTool(services),
     ]);
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@plaud-dev/mcp-salesforce",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "MCP Server for interacting with Salesforce instances",
   "bin": {
     "sf-mcp-server": "bin/run.js"
